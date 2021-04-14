@@ -1,39 +1,37 @@
-var express = require('express');
-var session = require ('express-session');
+const express = require('express');
+const app=express();
+const session = require('express-session');
 const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
-var app = express();
+
 app.set('view engine','ejs');
 
+const GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 const client_ID="12421510705-2t8vgegc7p3dissvnjitpat67lqdejmq.apps.googleusercontent.com";
 const client_Secret="lrWDQ63FCoWnC7lmhALHnjNH";
 
+var userProfile;
+
 app.use(session({
-    secret:'googleAuth',
+    resave:true,
     saveUninitialized:true,
-    resave:true
-}))
+    secret:'SECRET'
+}));
 
 app.use(passport.initialize());
+app.use(passport.session());
 
-app.get('/',(req,res)=>{
+app.get('/',function(req,res){
     res.render('../pages/auth');
-});
-
-app.get('/error',(req,res)=>{
-    res.send("Error in login with gmail");
-});
-
-app.get('/success',(req,res)=>{
-    res.send("Successfully login");
-});
-
-passport.serializeUser((user,cb)=>{
-    return cb(null,user);
 })
 
-passport.deserializeUser((obj,cb)=>{
-    return cb(null,obj);
+app.get('/success',(req,res)=>res.send(userProfile));
+app.get('/error',(req,res)=>res.send('Error in logging'));
+
+passport.serializeUser(function(user,cb){
+    cb(null,user);
+})
+passport.deserializeUser(function(obj,cb){
+    cb(null,obj);
 })
 
 passport.use(new GoogleStrategy({
@@ -42,23 +40,17 @@ passport.use(new GoogleStrategy({
     callbackURL:"http://localhost:3000/auth/google/callback"
 },
 function(accessToken,refreshToken,profile,done){
-    var userprofile;
-    return done(null,userprofile);
-}))
+    userProfile=profile;
+    return done(null,userProfile);
+}));
 
-app.get('/auth/google',passport.authenticate('google',{scope:['profile','email']}))
+app.get('/auth/google',passport.authenticate('google',{scope:['profile','email']}));
 
-app.get('/auth/google/callback',passport.authenticate('google',{failureRedirect:'/error'},
+app.get('/auth/google/callback',passport.authenticate('google',{failureRedirect:'/error'}),
 function(req,res){
-    res.render('../pages/success');
-}))
+    res.redirect('/success');
+})
 
 const port = process.env.PORT || 3000;
-app.listen(port,(err)=>{
-    if(err){
-        console.log("Error" +err);
-    }
-    else{
-        console.log("Server is Working");
-    }
-})
+
+app.listen(port,()=>{console.log('App listening on port' +port)});
